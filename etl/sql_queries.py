@@ -36,7 +36,7 @@ song_table_create = ("""
 CREATE TABLE songs(
     song_id         integer PRIMARY KEY,
     title           text,
-    artist_id       integer REFERENCES artists(artist_id),
+    artist_id       integer,
     year            integer,
     duration        numeric
 );
@@ -65,6 +65,12 @@ CREATE TABLE times(
 """)
 
 # INSERT RECORDS
+test = "hello"
+
+test_what = """
+hello
+is it me you're looking for?
+"""
 
 songplay_table_insert = ("""
 """)
@@ -73,6 +79,8 @@ user_table_insert = ("""
 """)
 
 song_table_insert = ("""
+INSERT INTO songs (song_id, title, artist_id, year, duration)
+VALUES (%s, %s, %s)
 """)
 
 artist_table_insert = ("""
@@ -89,5 +97,5 @@ song_select = ("""
 
 # QUERY LISTS
 
-create_table_queries = [songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
-drop_table_queries = [songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
+create_table_queries = [user_table_create, song_table_create, artist_table_create, time_table_create, songplay_table_create]
+drop_table_queries = [user_table_drop, song_table_drop, artist_table_drop, time_table_drop, songplay_table_drop]
