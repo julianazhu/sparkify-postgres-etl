@@ -12,6 +12,7 @@ from .sql_queries import *
 SONG_DATA_PATH = "../data/song_data"
 SONG_TABLE_COLS = ["song_id", "title", "artist_id", "year", "duration"]
 
+
 def get_files(filepath):
     all_files = []
     for root, dirs, files in os.walk(filepath):
