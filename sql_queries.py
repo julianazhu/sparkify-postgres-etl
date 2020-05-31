@@ -65,12 +65,6 @@ CREATE TABLE times(
 """)
 
 # INSERT RECORDS
-test = "hello"
-
-test_what = """
-hello
-is it me you're looking for?
-"""
 
 songplay_table_insert = ("""
 """)
