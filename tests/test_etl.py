@@ -1,7 +1,6 @@
-import os.path
 import tempfile
 import unittest
-from etl.etl import *
+from etl import *
 
 
 class TestSongDataImport(unittest.TestCase):

@@ -5,11 +5,12 @@ import glob
 # Third Party imports
 import psycopg2
 import pandas as pd
+import json
 
 # Local application imports
-from .sql_queries import *
+from sql_queries import *
 
-SONG_DATA_PATH = "../data/song_data"
+SONG_DATA_PATH = "data/song_data"
 SONG_TABLE_COLS = ["song_id", "title", "artist_id", "year", "duration"]
 
 
