@@ -1,6 +1,6 @@
 # DROP TABLES
 
-songplay_table_drop = "DROP TABLE IF EXISTS songplays"
+songplay_table_drop = "DROP TABLE IF EXISTS songplays;"
 user_table_drop = "DROP TABLE IF EXISTS users;"
 song_table_drop = "DROP TABLE IF EXISTS songs;"
 artist_table_drop = "DROP TABLE IF EXISTS artists;"
@@ -11,11 +11,11 @@ time_table_drop = "DROP TABLE IF EXISTS times;"
 songplay_table_create = ("""
 CREATE TABLE songplays(
     songplay_id     integer PRIMARY KEY,
-    start_time      timestamp,
-    user_id         integer,
+    start_time      integer REFERENCES times(start_time),
+    user_id         integer REFERENCES users(user_id),
     level           text,
-    song_id         integer REFERENCES songs(song_id),
-    artist_id       integer REFERENCES artists(artist_id),
+    song_id         text REFERENCES songs(song_id),
+    artist_id       text REFERENCES artists(artist_id),
     session_id      integer,
     location        text,
     user_agent      text
@@ -34,9 +34,9 @@ CREATE TABLE users(
 
 song_table_create = ("""
 CREATE TABLE songs(
-    song_id         integer PRIMARY KEY,
+    song_id         text PRIMARY KEY,
     title           text,
-    artist_id       integer,
+    artist_id       text,
     year            integer,
     duration        numeric
 );
@@ -44,7 +44,7 @@ CREATE TABLE songs(
 
 artist_table_create = ("""
 CREATE TABLE artists(
-    artist_id       integer PRIMARY KEY,
+    artist_id       text PRIMARY KEY,
     name            text,
     location        text,
     latitude        float8,
@@ -55,12 +55,12 @@ CREATE TABLE artists(
 time_table_create = ("""
 CREATE TABLE times(
     start_time      integer PRIMARY KEY,
-    hour            integer,
-    day             integer,
-    week            integer,
-    month           integer,
-    year            integer,
-    weekday         text
+    hour            integer NOT NULL,
+    day             integer NOT NULL,
+    week            integer NOT NULL,
+    month           integer NOT NULL,
+    year            integer NOT NULL,
+    weekday         text NOT NULL
 );
 """)
 
@@ -74,7 +74,7 @@ user_table_insert = ("""
 
 song_table_insert = ("""
 INSERT INTO songs (song_id, title, artist_id, year, duration)
-VALUES (%s, %s, %s)
+VALUES (%s, %s, %s, %s, %s)
 """)
 
 artist_table_insert = ("""
@@ -90,6 +90,7 @@ song_select = ("""
 """)
 
 # QUERY LISTS
+# Due to the enforcement of foreign key constrains, the songplay table must be created last and dropped first
 
 create_table_queries = [user_table_create, song_table_create, artist_table_create, time_table_create, songplay_table_create]
-drop_table_queries = [user_table_drop, song_table_drop, artist_table_drop, time_table_drop, songplay_table_drop]
+drop_table_queries = [songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
