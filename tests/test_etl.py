@@ -43,5 +43,50 @@ class TestSongDataImport(unittest.TestCase):
         self.assertEqual([1, 5], result)
 
 
+class TestSongPlayDataImport(unittest.TestCase):
+    sample_log_data = """
+    {'artist': 'Frumpies', 'auth': 'Logged In', 'firstName': 'Anabelle', 'gender': 'F', 'itemInSession': 0, 
+    'lastName': 'Simpson', 'length': 134.47791, 'level': 'free', 
+    'location': 'Philadelphia-Camden-Wilmington, PA-NJ-DE-MD', 'method': 'PUT', 'page': 'NextSong', 
+    'registration': 1541044398796.0, 'sessionId': 455, 'song': 'Fuck Kitty', 'status': 200, 'ts': 1541903636796, 
+    'userAgent': '"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"', 
+    'userId': '69'}
+    """
+
+    def test_filter_song_plays(self):
+        df = pd.DataFrame({
+            'test': [1, 2],
+            'page': ["Home", "NextSong"]},
+            ['a', 'b']
+        )
+
+        expected_result = pd.DataFrame({
+            'test': [2],
+            'page': ["NextSong"]},
+            ['b']
+        )
+
+        result = filter_song_plays(df)
+        pd.testing.assert_frame_equal(expected_result, result)
+
+    def test_extract_time_data(df):
+        df = pd.DataFrame({
+            'timestamp': [1591017855401]
+        })
+
+        expected_result = pd.DataFrame({
+            'timestamp': [1591017855401],
+            'hour': [13],
+            'day': [1],
+            'week': [23],
+            'month': [6],
+            'year': [2020],
+            'weekday': [0]
+        })
+
+        result = extract_time_data(df)
+        pd.testing.assert_frame_equal(expected_result, result)
+
+
 if __name__ == '__main__':
     unittest.main()

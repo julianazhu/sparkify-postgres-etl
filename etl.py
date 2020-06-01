@@ -1,6 +1,7 @@
 # Standard library imports
 import os
 import glob
+import datetime
 
 # Third Party imports
 import psycopg2
@@ -12,11 +13,13 @@ from sql_queries import *
 
 # DB_CREDENTIALS = "host=127.0.0.1 dbname=sparkifydb user=student password=student"
 DB_CREDENTIALS = "host=127.0.0.1 dbname=sparkifydb user=postgres"
+
 SONG_DATA_PATH = "data/song_data"
 LOG_DATA_PATH = "data/log_data"
+
 SONG_TABLE_COLS = ["song_id", "title", "artist_id", "year", "duration"]
 ARTIST_TABLE_COLS = ["artist_id", "artist_name", "artist_location", "artist_latitude", "artist_longitude"]
-TIME_TABLE_COLS = ["artist_id", "artist_name", "artist_location", "artist_latitude", "artist_longitude"]
+TIME_TABLE_COLS = ["timestamp", "hour", "day", "week", "month", "year", "weekday"]
 
 
 def get_files(filepath):
@@ -57,31 +60,53 @@ def connect_to_db():
     return cur, conn
 
 
-def insert_data_to_table(cur, conn, df, insert_query):
-    cur.execute(insert_query, df)
-    conn.commit()
-
-
 def import_data_from_directory(dir_path):
     """ Currently only gets first file """
     files = get_files(dir_path)
     json_data = import_data(files[0])
     validated_data = validate_data(json_data)
+    print(validated_data)
     return create_dataframe(validated_data)
+
+
+def insert_rows_into_table(cur, conn, df, insert_query):
+    cur.execute(insert_query, df)
+    conn.commit()
 
 
 def load_data_to_table(data_frame, insert_query, cols):
     relevant_data = extract_data_from_df(data_frame, cols)
     cur, conn = connect_to_db()
-    insert_data_to_table(cur, conn, relevant_data, insert_query)
+    insert_rows_into_table(cur, conn, relevant_data, insert_query)
+
+
+def filter_song_plays(df):
+    return df.loc[df['page'] == "NextSong"]
+
+
+def extract_time_data(df):
+    """ Currently only works with one row"""
+    timestamps = df['timestamp']
+
+    time_data = []
+    for index, timestamp in timestamps.items():
+        dt = pd.to_datetime(timestamp, unit='ms')
+        time_data.append([timestamp, dt.hour, dt.day, dt.week, dt.month, dt.year, dt.dayofweek])
+
+    time_data_dict = dict(zip(TIME_TABLE_COLS, time_data[0]))
+    time_df = pd.DataFrame([time_data_dict])
+    return time_df
 
 
 def main():
-    song_data = import_data_from_directory(SONG_DATA_PATH)
-    load_data_to_table(song_data, song_table_insert, SONG_TABLE_COLS)
-    load_data_to_table(song_data, artist_table_insert, ARTIST_TABLE_COLS)
+    # song_data = import_data_from_directory(SONG_DATA_PATH)
+    # load_data_to_table(song_data, song_table_insert, SONG_TABLE_COLS)
+    # load_data_to_table(song_data, artist_table_insert, ARTIST_TABLE_COLS)
 
     log_data = import_data_from_directory(LOG_DATA_PATH)
+    song_play_data = filter_song_plays(log_data)
+    time_df = extract_time_data(song_play_data)
+
     return True
 
 
