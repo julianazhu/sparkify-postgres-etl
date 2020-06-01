@@ -10,12 +10,12 @@ time_table_drop = "DROP TABLE IF EXISTS times;"
 
 songplay_table_create = ("""
 CREATE TABLE songplays(
-    songplay_id     integer PRIMARY KEY,
-    start_time      integer REFERENCES times(start_time),
-    user_id         integer REFERENCES users(user_id),
+    songplay_id     integer SERIAL PRIMARY KEY,
+    start_time      integer,
+    user_id         integer,
     level           text,
-    song_id         text REFERENCES songs(song_id),
-    artist_id       text REFERENCES artists(artist_id),
+    song_id         text,
+    artist_id       text,
     session_id      integer,
     location        text,
     user_agent      text
@@ -67,6 +67,8 @@ CREATE TABLE times(
 # INSERT RECORDS
 
 songplay_table_insert = ("""
+INSERT INTO songplays (start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
 """)
 
 user_table_insert = ("""
@@ -93,10 +95,13 @@ VALUES (%s, %s, %s, %s, %s, %s, %s)
 # FIND SONGS
 
 song_select = ("""
+SELECT (song_id, artists.artist_id) 
+FROM songs
+INNER JOIN artists ON songs.artist_id=artists.artist_id
+WHERE title=%s AND name=%s AND duration=%s;
 """)
 
 # QUERY LISTS
-# Due to the enforcement of foreign key constrains, the songplay table must be created last and dropped first
 
-create_table_queries = [user_table_create, song_table_create, artist_table_create, time_table_create, songplay_table_create]
+create_table_queries = [songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
 drop_table_queries = [songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
