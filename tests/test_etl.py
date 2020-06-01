@@ -71,11 +71,11 @@ class TestSongPlayDataImport(unittest.TestCase):
 
     def test_extract_time_data(df):
         df = pd.DataFrame({
-            'timestamp': [1591017855401]
+            'ts': [1591017855401]
         })
 
         expected_result = pd.DataFrame({
-            'timestamp': [1591017855401],
+            'start_time': [1591017855401],
             'hour': [13],
             'day': [1],
             'week': [23],

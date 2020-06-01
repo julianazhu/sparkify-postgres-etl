@@ -17,9 +17,10 @@ DB_CREDENTIALS = "host=127.0.0.1 dbname=sparkifydb user=postgres"
 SONG_DATA_PATH = "data/song_data"
 LOG_DATA_PATH = "data/log_data"
 
-SONG_TABLE_COLS = ["song_id", "title", "artist_id", "year", "duration"]
-ARTIST_TABLE_COLS = ["artist_id", "artist_name", "artist_location", "artist_latitude", "artist_longitude"]
-TIME_TABLE_COLS = ["timestamp", "hour", "day", "week", "month", "year", "weekday"]
+SONG_FIELDS = ["song_id", "title", "artist_id", "year", "duration"]
+ARTIST_FIELDS = ["artist_id", "artist_name", "artist_location", "artist_latitude", "artist_longitude"]
+TIME_FIELDS = ["start_time", "hour", "day", "week", "month", "year", "weekday"]
+USER_FIELDS = ["userId", "firstName", "lastName", "gender", "level"]
 
 
 def get_files(filepath):
@@ -65,7 +66,6 @@ def import_data_from_directory(dir_path):
     files = get_files(dir_path)
     json_data = import_data(files[0])
     validated_data = validate_data(json_data)
-    print(validated_data)
     return create_dataframe(validated_data)
 
 
@@ -86,28 +86,27 @@ def filter_song_plays(df):
 
 def extract_time_data(df):
     """ Currently only works with one row"""
-    timestamps = df['timestamp']
+    timestamps = df.ts
 
     time_data = []
     for index, timestamp in timestamps.items():
         dt = pd.to_datetime(timestamp, unit='ms')
         time_data.append([timestamp, dt.hour, dt.day, dt.week, dt.month, dt.year, dt.dayofweek])
 
-    time_data_dict = dict(zip(TIME_TABLE_COLS, time_data[0]))
+    time_data_dict = dict(zip(TIME_FIELDS, time_data[0]))
     time_df = pd.DataFrame([time_data_dict])
     return time_df
 
 
 def main():
     # song_data = import_data_from_directory(SONG_DATA_PATH)
-    # load_data_to_table(song_data, song_table_insert, SONG_TABLE_COLS)
-    # load_data_to_table(song_data, artist_table_insert, ARTIST_TABLE_COLS)
+    # load_data_to_table(song_data, song_table_insert, SONG_FIELDS)
+    # load_data_to_table(song_data, artist_table_insert, ARTIST_FIELDS)
 
     log_data = import_data_from_directory(LOG_DATA_PATH)
     song_play_data = filter_song_plays(log_data)
-    time_df = extract_time_data(song_play_data)
-
-    return True
+    # time_data = extract_time_data(song_play_data)
+    # load_data_to_table(time_data, time_table_insert, TIME_FIELDS)
 
 
 if __name__ == "__main__":

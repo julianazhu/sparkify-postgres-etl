@@ -54,7 +54,7 @@ CREATE TABLE artists(
 
 time_table_create = ("""
 CREATE TABLE times(
-    start_time      integer PRIMARY KEY,
+    start_time      bigint PRIMARY KEY,
     hour            integer NOT NULL,
     day             integer NOT NULL,
     week            integer NOT NULL,
@@ -84,6 +84,8 @@ VALUES (%s, %s, %s, %s, %s)
 
 
 time_table_insert = ("""
+INSERT INTO times (start_time, hour, day, week, month, year, weekday)
+VALUES (%s, %s, %s, %s, %s, %s, %s)
 """)
 
 # FIND SONGS
