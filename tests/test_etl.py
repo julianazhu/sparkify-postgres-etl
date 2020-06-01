@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import pandas as pd
 from etl import *
 
 
@@ -15,13 +16,12 @@ class TestSongDataImport(unittest.TestCase):
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.tmp_dir_path = self.tmp_dir.name
 
-        self.tmp_file = tempfile.NamedTemporaryFile(dir=self.tmp_dir_path, suffix='.json')
-        self.tmp_file_path = self.tmp_file.name
+        self.tmp_non_json_file = tempfile.NamedTemporaryFile(dir=self.tmp_dir_path, suffix='.txt')
+        self.tmp_json_file = tempfile.NamedTemporaryFile(dir=self.tmp_dir_path, suffix='.json')
+        self.tmp_file_path = self.tmp_json_file.name
 
         with open(self.tmp_file_path, "w") as f:
             f.write(self.sample_song_data)
-
-        self.tmp_non_json_file = tempfile.NamedTemporaryFile(dir=self.tmp_dir_path, suffix='.txt')
 
     def test_get_files(self):
         """ Only gets .json files """
@@ -33,13 +33,15 @@ class TestSongDataImport(unittest.TestCase):
         result = import_data(self.tmp_file_path)
         self.assertEqual(result, self.sample_song_data)
 
-    def test_validate_data(self):
-        result = import_data(self.tmp_file_path)
-        self.assertEqual(result, self.sample_song_data)
+    def test_extract_data_from_df(self):
+        df1 = pd.DataFrame({
+            'a': [1, 2],
+            'b': [3, 4],
+            'c': [5, 6]})
 
-    def test_extract_data(self):
-        result = import_data(self.tmp_file_path)
-        self.assertEqual(result, self.sample_song_data)
+        result = extract_data_from_df(df1, ['a', 'c'])
+        self.assertEqual([1, 5], result)
+
 
 if __name__ == '__main__':
     unittest.main()
