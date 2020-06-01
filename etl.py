@@ -108,6 +108,8 @@ def main():
     # time_data = extract_time_data(song_play_data)
     # load_data_to_table(time_data, time_table_insert, TIME_FIELDS)
 
+    load_data_to_table(song_play_data, user_table_insert, USER_FIELDS)
+
 
 if __name__ == "__main__":
     main()
