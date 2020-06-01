@@ -12,6 +12,7 @@ from sql_queries import *
 
 SONG_DATA_PATH = "data/song_data"
 SONG_TABLE_COLS = ["song_id", "title", "artist_id", "year", "duration"]
+ARTIST_TABLE_COLS = ["artist_id", "artist_name", "artist_location", "artist_latitude", "artist_longitude"]
 
 
 def get_files(filepath):
@@ -44,11 +45,6 @@ def extract_data(df, cols):
     return song_df.values[0].tolist()
 
 
-def load_song_data_to_db(cur, conn, song_df):
-    cur.execute(song_table_insert, song_df)
-    conn.commit()
-
-
 def connect_to_db():
     # conn = psycopg2.connect("host=127.0.0.1 dbname=sparkifydb user=student password=student")
     conn = psycopg2.connect("host=127.0.0.1 dbname=sparkifydb user=postgres")
@@ -56,14 +52,28 @@ def connect_to_db():
     return cur, conn
 
 
-def main():
+def insert_data_to_table(cur, conn, df, insert_query):
+    cur.execute(insert_query, df)
+    conn.commit()
+
+
+def extract_song_data():
     song_files = get_files(SONG_DATA_PATH)
     json_data = import_data(song_files[0])
     validated_data = validate_data(json_data)
-    data_frame = create_dataframe(validated_data)
-    song_df = extract_data(data_frame, SONG_TABLE_COLS)
-    cur, conn = connect_to_db
-    load_song_data_to_db(cur, conn, song_df)
+    return create_dataframe(validated_data)
+
+
+def load_data_to_table(data_frame, insert_query, cols):
+    df = extract_data(data_frame, cols)
+    cur, conn = connect_to_db()
+    insert_data_to_table(cur, conn, df, insert_query)
+
+
+def main():
+    song_data = extract_song_data()
+    load_data_to_table(song_data, song_table_insert, SONG_TABLE_COLS)
+    load_data_to_table(song_data, artist_table_insert, ARTIST_TABLE_COLS)
 
 
 if __name__ == "__main__":
