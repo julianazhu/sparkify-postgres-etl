@@ -18,7 +18,7 @@ class DbConnection:
         self.cur.close()
         self.conn.close()
 
-    def execute_insert_query(self, df, insert_query):
+    def execute_insert_query(self, insert_query, df):
         self.cur.execute(insert_query, df)
         self.conn.commit()
 
