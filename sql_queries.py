@@ -10,7 +10,7 @@ time_table_drop = "DROP TABLE IF EXISTS times;"
 
 songplay_table_create = ("""
 CREATE TABLE songplays(
-    songplay_id     integer SERIAL PRIMARY KEY,
+    songplay_id     serial PRIMARY KEY,
     start_time      integer,
     user_id         integer,
     level           text,

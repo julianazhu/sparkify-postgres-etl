@@ -29,8 +29,8 @@ class TestSongDataImport(unittest.TestCase):
         result = get_files(self.tmp_dir_path)
         self.assertEqual(result[0], self.tmp_file_path)
 
-    def test_import_data(self):
-        result = import_data(self.tmp_file_path)
+    def test_import_data_from_file(self):
+        result = import_data_from_file(self.tmp_file_path)
         self.assertEqual(result, self.sample_song_data)
 
     def test_extract_data_from_df(self):
