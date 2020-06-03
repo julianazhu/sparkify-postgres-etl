@@ -10,9 +10,6 @@ import json
 from sql_queries import *
 from db_connection import *
 
-# Globals
-db_conn = DbConnection()
-
 # Constants
 SONG_DATA_PATH = "data/song_data"
 LOG_DATA_PATH = "data/log_data"
@@ -22,6 +19,22 @@ ARTIST_FIELDS = ["artist_id", "artist_name", "artist_location", "artist_latitude
 TIME_FIELDS = ["start_time", "hour", "day", "week", "month", "year", "weekday"]
 USER_FIELDS = ["userId", "firstName", "lastName", "gender", "level"]
 SONGPLAY_FIELDS = ["length", "userId", "level", "song_id", "artist_id", "sessionId", "location", "userAgent"]
+
+
+def extract_song_and_log_data():
+    """ Imports song and log data from directory .json files """
+    song_data = extract_json_data_from_dir(SONG_DATA_PATH)
+    log_data = extract_json_data_from_dir(LOG_DATA_PATH)
+    return song_data, log_data
+
+
+def extract_json_data_from_dir(dir_path):
+    """ Currently only gets first file """
+    files = get_files(dir_path)
+    json_data = extract_data_from_file(files[0])
+    validated_data = validate_json(json_data)
+    df = pd.DataFrame([validated_data])
+    return df.head(1)
 
 
 def get_files(filepath):
@@ -35,14 +48,17 @@ def get_files(filepath):
     return all_files
 
 
-def import_data_from_file(filepath):
+def extract_data_from_file(filepath):
     """ Currently only gets first line """
     f = open(filepath, "r")
     return f.readline()
 
 
-def validate_data(json_data):
-    """ TODO: put something here to validate the data """
+def validate_json(json_data):
+    """
+    Check that the .json file is in a valid format
+    TODO: put something here to validate the data
+    """
     data_dict = json.loads(json_data)
     return data_dict
 
@@ -53,43 +69,26 @@ def extract_data_from_df(df, cols):
     return df.values[0].tolist()
 
 
-def import_data_from_directory(dir_path):
-    """ Currently only gets first file """
-    files = get_files(dir_path)
-    json_data = import_data_from_file(files[0])
-    validated_data = validate_data(json_data)
-    df = pd.DataFrame([validated_data])
-    return df.head(1)
-
-
-def import_data():
-    """ Imports song and log data from directories """
-    song_data = import_data_from_directory(SONG_DATA_PATH)
-    log_data = import_data_from_directory(LOG_DATA_PATH)
-    return song_data, log_data
-
-
-def fetch_songplay_data(songplay_log_data):
+def fetch_songplay_data(songplay_log_data, db_conn):
     """ Returns the songplay data with artist_id and song_id from db """
-    dimensions_dict = retrieve_songplay_dimension_fields(songplay_log_data)
+    dimensions_dict = retrieve_songplay_dimension_fields(songplay_log_data, db_conn)
     dimensions_df = pd.DataFrame(dimensions_dict)
     songplay_data = pd.concat([songplay_log_data, dimensions_df], axis=1)
     return songplay_data
 
 
-def transform_log_data(log_data):
-    """ Returns the songplay data & time data from the log data"""
+def transform_log_data(log_data, db_conn):
+    """ Returns the songplay data & time data from the log data """
     songplay_log_data = filter_song_plays(log_data)
     time_data = extract_time_data(songplay_log_data)
 
-    songplay_data = fetch_songplay_data(songplay_log_data)
+    songplay_data = fetch_songplay_data(songplay_log_data, db_conn)
     return time_data, songplay_data
 
 
-def load_data_to_table(df, query, cols):
+def get_slice(df, cols):
     """ Insert specified dataframe columns into db """
-    relevant_data = extract_data_from_df(df, cols)
-    db_conn.execute_insert_query(query, relevant_data)
+    return df[cols].values[0].tolist()
 
 
 def filter_song_plays(df):
@@ -98,7 +97,8 @@ def filter_song_plays(df):
 
 
 def extract_time_data(df):
-    """ Extract timestamp column from a dataframe
+    """
+    Extract timestamp column from a dataframe
     Return a dataframe with each timestamp extrapolated into:
     timestamp, hour, day, week of year, month, year, day of week
 
@@ -116,11 +116,13 @@ def extract_time_data(df):
     return time_df
 
 
-def retrieve_songplay_dimension_fields(df):
-    """ Retrieves the song_id and artist_id fields
+def retrieve_songplay_dimension_fields(df, db_conn):
+    """
+    Retrieves the song_id and artist_id fields
     from the db for each songplay.
 
-    Currently only works with one row """
+    Currently only works with one row
+    """
     dimensions_dict = {'song_id': [], 'artist_id': []}
 
     for index, row in df.iterrows():
@@ -138,18 +140,15 @@ def retrieve_songplay_dimension_fields(df):
 
 
 def main():
-    db_conn.open_connection()
+    with DbConnection() as db_conn:
+        song_data, log_data = extract_song_and_log_data()
+        time_data, songplay_data = transform_log_data(log_data, db_conn)
 
-    song_data, log_data = import_data()
-    time_data, songplay_data = transform_log_data(log_data)
-
-    load_data_to_table(song_data, song_table_insert, SONG_FIELDS)
-    load_data_to_table(song_data, artist_table_insert, ARTIST_FIELDS)
-    load_data_to_table(time_data, time_table_insert, TIME_FIELDS)
-    load_data_to_table(songplay_data, user_table_insert, USER_FIELDS)
-    load_data_to_table(songplay_data, songplay_table_insert, SONGPLAY_FIELDS)
-
-    db_conn.close_connection()
+        db_conn.execute_insert_query(song_table_insert, get_slice(song_data, SONG_FIELDS))
+        db_conn.execute_insert_query(artist_table_insert, get_slice(song_data, ARTIST_FIELDS))
+        db_conn.execute_insert_query(time_table_insert, get_slice(time_data, TIME_FIELDS))
+        db_conn.execute_insert_query(user_table_insert, get_slice(songplay_data, USER_FIELDS))
+        db_conn.execute_insert_query(songplay_table_insert, get_slice(songplay_data, SONGPLAY_FIELDS))
 
 
 if __name__ == "__main__":
