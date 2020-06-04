@@ -84,7 +84,7 @@ def fetch_songplay_data(songplay_log_data, db_conn):
 def transform_log_data(log_data, db_conn):
     """ Returns the songplay data & time data from the log data """
     songplay_log_data = filter_song_plays(log_data)
-    time_data = extract_time_data(songplay_log_data)
+    time_data = transform_time_data(songplay_log_data)
 
     songplay_data = fetch_songplay_data(songplay_log_data, db_conn)
     return time_data, songplay_data
@@ -96,17 +96,15 @@ def get_slice(df, cols):
 
 
 def filter_song_plays(df):
-    """ Returns only logs related to songplays """
+    """ Returns only rows related to songplays """
     return df.loc[df['page'] == "NextSong"]
 
 
-def extract_time_data(df):
+def transform_time_data(df):
     """
     Extract timestamp column from a dataframe
     Return a dataframe with each timestamp extrapolated into:
     timestamp, hour, day, week of year, month, year, day of week
-
-    Currently only works with one row
     """
     timestamps = df.ts
 
@@ -115,8 +113,7 @@ def extract_time_data(df):
         dt = pd.to_datetime(timestamp, unit='ms')
         time_data.append([timestamp, dt.hour, dt.day, dt.week, dt.month, dt.year, dt.dayofweek])
 
-    time_data_dict = dict(zip(TIME_FIELDS, time_data[0]))
-    time_df = pd.DataFrame([time_data_dict])
+    time_df = pd.DataFrame(time_data, columns=TIME_FIELDS)
     return time_df
 
 

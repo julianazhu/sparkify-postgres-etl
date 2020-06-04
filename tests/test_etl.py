@@ -36,9 +36,8 @@ class TestSongDataImport(unittest.TestCase):
             'song_id': ['SONHOTT12A8C13493C', 'SONHOTT12A8C13493D'],
             'title': ['Something Girls', 'Something Else'],
             'duration': [233.40363, 233.4012],
-            'year': [1982, 2019]},
-            range(0, 2)
-        )
+            'year': [1982, 2019]
+        })
 
         result = extract_json_data_from_dir(self.tmp_dir_path)
         pd.testing.assert_frame_equal(expected_result, result)
@@ -85,22 +84,22 @@ class TestSongPlayDataImport(unittest.TestCase):
         result = filter_song_plays(df)
         pd.testing.assert_frame_equal(expected_result, result)
 
-    def test_extract_time_data(df):
+    def test_transform_time_data(df):
         df = pd.DataFrame({
-            'ts': [1591017855401]
+            'ts': [1591017855401, 1591279264136]
         })
 
         expected_result = pd.DataFrame({
-            'start_time': [1591017855401],
-            'hour': [13],
-            'day': [1],
-            'week': [23],
-            'month': [6],
-            'year': [2020],
-            'weekday': [0]
+            'start_time': [1591017855401, 1591279264136],
+            'hour': [13, 14],
+            'day': [1, 4],
+            'week': [23, 23],
+            'month': [6, 6],
+            'year': [2020, 2020],
+            'weekday': [0, 3]
         })
 
-        result = extract_time_data(df)
+        result = transform_time_data(df)
         pd.testing.assert_frame_equal(expected_result, result)
 
 
