@@ -29,16 +29,26 @@ def extract_song_and_log_data():
 
 
 def extract_json_data_from_dir(dir_path):
-    """ Currently only gets first file """
+    """
+    Returns a dataframe containing the concatenated data
+    of all .json files in the directory.
+
+    TODO: Skips the file with error if it is incorrectly formatted
+    """
     files = get_files(dir_path)
-    json_data = extract_data_from_file(files[0])
-    validated_data = validate_json(json_data)
-    df = pd.DataFrame([validated_data])
-    return df.head(1)
+
+    json_data = []
+    for file in files:
+        with open(file, "r") as f:
+            lines = [line for line in f.readlines() if line.strip()]
+            for line in lines:
+                json_data.append(json.loads(line))
+
+    return pd.DataFrame(json_data)
 
 
 def get_files(filepath):
-    """ Returns a list of all files in the filepath """
+    """ Returns a list of all .json files in the filepath """
     all_files = []
     for root, dirs, files in os.walk(filepath):
         files = glob.glob(os.path.join(root, '*.json'))
@@ -46,12 +56,6 @@ def get_files(filepath):
             all_files.append(os.path.abspath(f))
 
     return all_files
-
-
-def extract_data_from_file(filepath):
-    """ Currently only gets first line """
-    f = open(filepath, "r")
-    return f.readline()
 
 
 def validate_json(json_data):
@@ -146,6 +150,7 @@ def main():
 
         db_conn.execute_insert_query(song_table_insert, get_slice(song_data, SONG_FIELDS))
         db_conn.execute_insert_query(artist_table_insert, get_slice(song_data, ARTIST_FIELDS))
+
         db_conn.execute_insert_query(time_table_insert, get_slice(time_data, TIME_FIELDS))
         db_conn.execute_insert_query(user_table_insert, get_slice(songplay_data, USER_FIELDS))
         db_conn.execute_insert_query(songplay_table_insert, get_slice(songplay_data, SONGPLAY_FIELDS))

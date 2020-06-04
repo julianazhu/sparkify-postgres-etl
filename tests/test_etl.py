@@ -5,11 +5,13 @@ from etl import *
 
 
 class TestSongDataImport(unittest.TestCase):
-    sample_song_data = """
-    {"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6C", "artist_latitude": null, "artist_longitude": null, 
-    "artist_location": "London, England", "artist_name": "Adam Ant", "song_id": "SONHOTT12A8C13493C", 
-    "title": "Something Girls", "duration": 233.40363, "year": 1982}
-    """
+    sample_song_data = '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6C", "artist_latitude": null, ' \
+    '"artist_longitude": null, "artist_location": "London, England", "artist_name": "Adam Ant", ' \
+    '"song_id": "SONHOTT12A8C13493C", "title": "Something Girls", "duration": 233.40363, "year": 1982} \n' \
+    '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6D", "artist_latitude": null, "artist_longitude": null, ' \
+    '"artist_location": "London, England", "artist_name": "Betty Blue", "song_id": "SONHOTT12A8C13493D", ' \
+    '"title": "Something Else", "duration": 233.4012, "year": 2019}'
+
     song_table_data = ['SONHOTT12A8C13493C', 'Something Girls', 'AR7G5I41187FB4CE6C', 1982, 233.40363]
 
     def setUp(self):
@@ -23,15 +25,29 @@ class TestSongDataImport(unittest.TestCase):
         with open(self.tmp_file_path, "w") as f:
             f.write(self.sample_song_data)
 
+    def test_extract_json_data_from_dir(self):
+        expected_result = pd.DataFrame({
+            'num_songs': [1, 1],
+            'artist_id': ['AR7G5I41187FB4CE6C', 'AR7G5I41187FB4CE6D'],
+            'artist_latitude': [None, None],
+            'artist_longitude': [None, None],
+            'artist_location': ['London, England', 'London, England'],
+            'artist_name': ['Adam Ant', 'Betty Blue'],
+            'song_id': ['SONHOTT12A8C13493C', 'SONHOTT12A8C13493D'],
+            'title': ['Something Girls', 'Something Else'],
+            'duration': [233.40363, 233.4012],
+            'year': [1982, 2019]},
+            range(0, 2)
+        )
+
+        result = extract_json_data_from_dir(self.tmp_dir_path)
+        pd.testing.assert_frame_equal(expected_result, result)
+
     def test_get_files(self):
         """ Only gets .json files """
 
         result = get_files(self.tmp_dir_path)
-        self.assertEqual(result[0], self.tmp_file_path)
-
-    def test_import_data_from_file(self):
-        result = import_data_from_file(self.tmp_file_path)
-        self.assertEqual(result, self.sample_song_data)
+        self.assertListEqual(result, [self.tmp_file_path])
 
     def test_extract_data_from_df(self):
         df1 = pd.DataFrame({
