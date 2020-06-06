@@ -6,11 +6,11 @@ from etl import *
 
 class TestSongDataImport(unittest.TestCase):
     sample_song_data = '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6C", "artist_latitude": null, ' \
-    '"artist_longitude": null, "artist_location": "London, England", "artist_name": "Adam Ant", ' \
-    '"song_id": "SONHOTT12A8C13493C", "title": "Something Girls", "duration": 233.40363, "year": 1982} \n' \
-    '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6D", "artist_latitude": null, "artist_longitude": null, ' \
-    '"artist_location": "London, England", "artist_name": "Betty Blue", "song_id": "SONHOTT12A8C13493D", ' \
-    '"title": "Something Else", "duration": 233.4012, "year": 2019}'
+        '"artist_longitude": null, "artist_location": "London, England", "artist_name": "Adam Ant", ' \
+        '"song_id": "SONHOTT12A8C13493C", "title": "Something Girls", "duration": 233.40363, "year": 1982} \n' \
+        '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6D", "artist_latitude": null, "artist_longitude": null, ' \
+        '"artist_location": "London, England", "artist_name": "Betty Blue", "song_id": "SONHOTT12A8C13493D", ' \
+        '"title": "Something Else", "duration": 233.4012, "year": 2019} \n'
 
     song_table_data = ['SONHOTT12A8C13493C', 'Something Girls', 'AR7G5I41187FB4CE6C', 1982, 233.40363]
 
@@ -20,9 +20,9 @@ class TestSongDataImport(unittest.TestCase):
 
         self.tmp_non_json_file = tempfile.NamedTemporaryFile(dir=self.tmp_dir_path, suffix='.txt')
         self.tmp_json_file = tempfile.NamedTemporaryFile(dir=self.tmp_dir_path, suffix='.json')
-        self.tmp_file_path = self.tmp_json_file.name
+        self.tmp_json_file_path = self.tmp_json_file.name
 
-        with open(self.tmp_file_path, "w") as f:
+        with open(self.tmp_json_file_path, "w") as f:
             f.write(self.sample_song_data)
 
     def test_extract_json_data_from_dir(self):
@@ -42,11 +42,14 @@ class TestSongDataImport(unittest.TestCase):
         result = extract_json_data_from_dir(self.tmp_dir_path)
         pd.testing.assert_frame_equal(expected_result, result)
 
+    def test_validate_json(self):
+        self.assertFalse(validate_json("[]s;]"))
+
     def test_get_files(self):
-        """ Only gets .json files """
+        """ Should only get the .json file """
 
         result = get_files(self.tmp_dir_path)
-        self.assertListEqual(result, [self.tmp_file_path])
+        self.assertListEqual(result, [self.tmp_json_file_path])
 
 
 class TestSongPlayDataImport(unittest.TestCase):

@@ -42,8 +42,6 @@ def extract_json_data_from_dir(dir_path):
     """
     Returns a dataframe containing data
     from all .json files in the directory.
-
-    TODO: Skips the file with error if it is incorrectly formatted
     """
     files = get_files(dir_path)
 
@@ -52,7 +50,9 @@ def extract_json_data_from_dir(dir_path):
         with open(file, "r") as f:
             lines = [line for line in f.readlines() if line.strip()]
             for line in lines:
-                json_data.append(json.loads(line))
+                line_dict = validate_json(line)
+                if line_dict:
+                    json_data.append(line_dict)
 
     return pd.DataFrame(json_data)
 
@@ -60,10 +60,10 @@ def extract_json_data_from_dir(dir_path):
 def validate_json(json_data):
     """ Check that the .json file is in a valid format """
     try:
-        data_dict = json.loads(json_data)
-    except JSONDecodeError:
-        print("Invalid JSON\n")
-    return data_dict
+        return json.loads(json_data)
+    except json.decoder.JSONDecodeError:
+        f"Invalid JSON, ignoring: \"{json_data}\""
+        return None
 
 
 def get_songplay_data(songplay_log_data, db_conn):
@@ -96,7 +96,6 @@ def clean_data(df, primary_key=None):
         df = df.dropna(subset=primary_key)
         df = deduplicate_on_primary_key(df, primary_key)
 
-    # Drop row if all elements are null
     df = df.dropna(how='all')
     return df
 
