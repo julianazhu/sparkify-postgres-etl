@@ -48,15 +48,6 @@ class TestSongDataImport(unittest.TestCase):
         result = get_files(self.tmp_dir_path)
         self.assertListEqual(result, [self.tmp_file_path])
 
-    def test_extract_data_from_df(self):
-        df1 = pd.DataFrame({
-            'a': [1, 2],
-            'b': [3, 4],
-            'c': [5, 6]})
-
-        result = extract_data_from_df(df1, ['a', 'c'])
-        self.assertEqual([1, 5], result)
-
 
 class TestSongPlayDataImport(unittest.TestCase):
     sample_log_data = """
@@ -68,7 +59,7 @@ class TestSongPlayDataImport(unittest.TestCase):
     'userId': '69'}
     """
 
-    def test_filter_song_plays(self):
+    def test_filter_songplays(self):
         df = pd.DataFrame({
             'test': [1, 2],
             'page': ["Home", "NextSong"]},
@@ -81,7 +72,7 @@ class TestSongPlayDataImport(unittest.TestCase):
             ['b']
         )
 
-        result = filter_song_plays(df)
+        result = filter_songplays(df)
         pd.testing.assert_frame_equal(expected_result, result)
 
     def test_transform_time_data(df):

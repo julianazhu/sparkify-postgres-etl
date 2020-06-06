@@ -23,10 +23,16 @@ class DbConnection:
         self.cur.execute(insert_query, df)
         self.conn.commit()
 
+    def execute_copy_from(self, file, table_name, cols):
+        """ Inserts the file's data into a specified table columns """
+        self.cur.copy_from(file, table_name, columns=cols, null='Unknown')
+        self.conn.commit()
+
     def execute_select_query(self, select_query, cols):
         """
         Selects the given columns from the table according to the select query
-        This only returns one row
+
+        Returns the first match.
         """
         self.cur.execute(select_query, cols)
         return self.cur.fetchone()

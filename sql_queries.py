@@ -1,3 +1,11 @@
+# TABLE COLUMNS
+
+SONGPLAY_COLS = ('start_time', 'user_id', 'level', 'song_id', 'artist_id', 'session_id', 'location', 'user_agent')
+USER_COLS = ('user_id', 'first_name', 'last_name', 'gender', 'level')
+SONG_COLS = ('song_id', 'title', 'artist_id', 'year', 'duration')
+ARTIST_COLS = ('artist_id', 'name', 'location', 'latitude', 'longitude')
+TIME_COLS = ('start_time', 'hour', 'day', 'week', 'month', 'year', 'weekday')
+
 # DROP TABLES
 
 songplay_table_drop = "DROP TABLE IF EXISTS songplays;"
@@ -11,7 +19,7 @@ time_table_drop = "DROP TABLE IF EXISTS times;"
 songplay_table_create = ("""
 CREATE TABLE songplays(
     songplay_id     serial PRIMARY KEY,
-    start_time      integer,
+    start_time      bigint,
     user_id         integer,
     level           text,
     song_id         text,

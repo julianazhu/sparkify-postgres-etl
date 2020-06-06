@@ -1,37 +1,47 @@
-# Standard library imports
 import os
 import glob
-
-# Third Party imports
-import pandas as pd
+import io
 import json
 
-# Local application imports
+import pandas as pd
+
 from sql_queries import *
 from db_connection import *
 
-# Constants
+# JSON INPUT DIRECTORY PATHS
 SONG_DATA_PATH = "data/song_data"
 LOG_DATA_PATH = "data/log_data"
 
+# JSON INPUT FILE FIELDS
 SONG_FIELDS = ["song_id", "title", "artist_id", "year", "duration"]
 ARTIST_FIELDS = ["artist_id", "artist_name", "artist_location", "artist_latitude", "artist_longitude"]
 TIME_FIELDS = ["start_time", "hour", "day", "week", "month", "year", "weekday"]
 USER_FIELDS = ["userId", "firstName", "lastName", "gender", "level"]
-SONGPLAY_FIELDS = ["length", "userId", "level", "song_id", "artist_id", "sessionId", "location", "userAgent"]
+SONGPLAY_FIELDS = ["ts", "userId", "level", "song_id", "artist_id", "sessionId", "location", "userAgent"]
 
 
 def extract_song_and_log_data():
-    """ Imports song and log data from directory .json files """
+    """ Imports song & log data from directories """
     song_data = extract_json_data_from_dir(SONG_DATA_PATH)
     log_data = extract_json_data_from_dir(LOG_DATA_PATH)
     return song_data, log_data
 
 
+def get_files(filepath):
+    """ Returns a list of all .json files in path """
+    all_files = []
+    for root, dirs, files in os.walk(filepath):
+        files = glob.glob(os.path.join(root, '*.json'))
+        for f in files:
+            all_files.append(os.path.abspath(f))
+
+    return all_files
+
+
 def extract_json_data_from_dir(dir_path):
     """
-    Returns a dataframe containing the concatenated data
-    of all .json files in the directory.
+    Returns a dataframe containing data
+    from all .json files in the directory.
 
     TODO: Skips the file with error if it is incorrectly formatted
     """
@@ -47,33 +57,16 @@ def extract_json_data_from_dir(dir_path):
     return pd.DataFrame(json_data)
 
 
-def get_files(filepath):
-    """ Returns a list of all .json files in the filepath """
-    all_files = []
-    for root, dirs, files in os.walk(filepath):
-        files = glob.glob(os.path.join(root, '*.json'))
-        for f in files:
-            all_files.append(os.path.abspath(f))
-
-    return all_files
-
-
 def validate_json(json_data):
-    """
-    Check that the .json file is in a valid format
-    TODO: put something here to validate the data
-    """
-    data_dict = json.loads(json_data)
+    """ Check that the .json file is in a valid format """
+    try:
+        data_dict = json.loads(json_data)
+    except JSONDecodeError:
+        print("Invalid JSON\n")
     return data_dict
 
 
-def extract_data_from_df(df, cols):
-    """ Currently only gets first row """
-    df = df[cols]
-    return df.values[0].tolist()
-
-
-def fetch_songplay_data(songplay_log_data, db_conn):
+def get_songplay_data(songplay_log_data, db_conn):
     """ Returns the songplay data with artist_id and song_id from db """
     dimensions_dict = retrieve_songplay_dimension_fields(songplay_log_data, db_conn)
     dimensions_df = pd.DataFrame(dimensions_dict)
@@ -82,21 +75,53 @@ def fetch_songplay_data(songplay_log_data, db_conn):
 
 
 def transform_log_data(log_data, db_conn):
-    """ Returns the songplay data & time data from the log data """
-    songplay_log_data = filter_song_plays(log_data)
+    """ Returns cleaned & transformed songplay & time data from log data """
+    songplay_log_data = filter_songplays(log_data)
     time_data = transform_time_data(songplay_log_data)
+    time_data = deduplicate_on_primary_key(time_data, 'start_time')
 
-    songplay_data = fetch_songplay_data(songplay_log_data, db_conn)
+    songplay_data = get_songplay_data(songplay_log_data, db_conn)
+    songplay_data = clean_data(songplay_data)
     return time_data, songplay_data
 
 
-def get_slice(df, cols):
-    """ Insert specified dataframe columns into db """
-    return df[cols].values[0].tolist()
+def deduplicate_on_primary_key(df, primary_key):
+    """ Removes duplicate artists from the song data """
+    return df.drop_duplicates(subset=primary_key, keep='first')
 
 
-def filter_song_plays(df):
-    """ Returns only rows related to songplays """
+def clean_data(df, primary_key=None):
+    """ Drops null & duplicate rows """
+    if primary_key:
+        df = df.dropna(subset=primary_key)
+        df = deduplicate_on_primary_key(df, primary_key)
+
+    # Drop row if all elements are null
+    df = df.dropna(how='all')
+    return df
+
+
+def get_slice_as_file(df, cols, primary_key=None, float_format='%.2f'):
+    """ Insert specified columns into db """
+    relevant_data = df[cols]
+    cleaned_data = clean_data(relevant_data, primary_key)
+
+    string_buffer = io.StringIO()
+    cleaned_data.to_csv(
+        string_buffer,
+        sep='\t',
+        na_rep='Unknown',
+        index=False,
+        header=False,
+        float_format=float_format
+    )
+
+    string_buffer.seek(0)
+    return string_buffer
+
+
+def filter_songplays(df):
+    """ Returns songplay rows """
     return df.loc[df['page'] == "NextSong"]
 
 
@@ -109,9 +134,9 @@ def transform_time_data(df):
     timestamps = df.ts
 
     time_data = []
-    for index, timestamp in timestamps.items():
-        dt = pd.to_datetime(timestamp, unit='ms')
-        time_data.append([timestamp, dt.hour, dt.day, dt.week, dt.month, dt.year, dt.dayofweek])
+    for index, ts in timestamps.items():
+        dt = pd.to_datetime(ts, unit='ms')
+        time_data.append([ts, dt.hour, dt.day, dt.week, dt.month, dt.year, dt.dayofweek])
 
     time_df = pd.DataFrame(time_data, columns=TIME_FIELDS)
     return time_df
@@ -121,8 +146,6 @@ def retrieve_songplay_dimension_fields(df, db_conn):
     """
     Retrieves the song_id and artist_id fields
     from the db for each songplay.
-
-    Currently only works with one row
     """
     dimensions_dict = {'song_id': [], 'artist_id': []}
 
@@ -145,12 +168,20 @@ def main():
         song_data, log_data = extract_song_and_log_data()
         time_data, songplay_data = transform_log_data(log_data, db_conn)
 
-        db_conn.execute_insert_query(song_table_insert, get_slice(song_data, SONG_FIELDS))
-        db_conn.execute_insert_query(artist_table_insert, get_slice(song_data, ARTIST_FIELDS))
+        song_file = get_slice_as_file(song_data, SONG_FIELDS, ["song_id"])
+        db_conn.execute_copy_from(song_file, "songs", SONG_COLS)
 
-        db_conn.execute_insert_query(time_table_insert, get_slice(time_data, TIME_FIELDS))
-        db_conn.execute_insert_query(user_table_insert, get_slice(songplay_data, USER_FIELDS))
-        db_conn.execute_insert_query(songplay_table_insert, get_slice(songplay_data, SONGPLAY_FIELDS))
+        artist_file = get_slice_as_file(song_data, ARTIST_FIELDS, ["artist_id"])
+        db_conn.execute_copy_from(artist_file, "artists", ARTIST_COLS)
+
+        time_file = get_slice_as_file(time_data, TIME_FIELDS, ["start_time"])
+        db_conn.execute_copy_from(time_file, "times", TIME_COLS)
+
+        user_file = get_slice_as_file(songplay_data, USER_FIELDS, ["userId"])
+        db_conn.execute_copy_from(user_file, "users", USER_COLS)
+
+        songplays_file = get_slice_as_file(songplay_data, SONGPLAY_FIELDS, float_format='%.f')
+        db_conn.execute_copy_from(songplays_file, "songplays", SONGPLAY_COLS)
 
 
 if __name__ == "__main__":
