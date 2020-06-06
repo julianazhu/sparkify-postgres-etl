@@ -10,7 +10,7 @@ class TestSongDataImport(unittest.TestCase):
         '"song_id": "SONHOTT12A8C13493C", "title": "Something Girls", "duration": 233.40363, "year": 1982} \n' \
         '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6D", "artist_latitude": null, "artist_longitude": null, ' \
         '"artist_location": "London, England", "artist_name": "Betty Blue", "song_id": "SONHOTT12A8C13493D", ' \
-        '"title": "Something Else", "duration": 233.4012, "year": 2019} \n'
+        '"title": "Something Else", "duration": 233.4012, "year": 2019} \n {}'
 
     song_table_data = ['SONHOTT12A8C13493C', 'Something Girls', 'AR7G5I41187FB4CE6C', 1982, 233.40363]
 
@@ -25,7 +25,9 @@ class TestSongDataImport(unittest.TestCase):
         with open(self.tmp_json_file_path, "w") as f:
             f.write(self.sample_song_data)
 
-    def test_extract_json_data_from_dir(self):
+    def test_extracts_json_data_from_dir_successfully(self):
+        """ Expect to skip blank rows and extract json data to dataframe"""
+
         expected_result = pd.DataFrame({
             'num_songs': [1, 1],
             'artist_id': ['AR7G5I41187FB4CE6C', 'AR7G5I41187FB4CE6D'],
@@ -42,12 +44,10 @@ class TestSongDataImport(unittest.TestCase):
         result = extract_json_data_from_dir(self.tmp_dir_path)
         pd.testing.assert_frame_equal(expected_result, result)
 
-    def test_validate_json(self):
+    def test_ignores_invalid_json(self):
         self.assertFalse(validate_json("[]s;]"))
 
-    def test_get_files(self):
-        """ Should only get the .json file """
-
+    def test_gets_only_json_files(self):
         result = get_files(self.tmp_dir_path)
         self.assertListEqual(result, [self.tmp_json_file_path])
 
@@ -62,7 +62,7 @@ class TestSongPlayDataImport(unittest.TestCase):
     'userId': '69'}
     """
 
-    def test_filter_songplays(self):
+    def test_filters_songplays_on_page_field_equals_nextsong(self):
         df = pd.DataFrame({
             'test': [1, 2],
             'page': ["Home", "NextSong"]},
@@ -78,7 +78,7 @@ class TestSongPlayDataImport(unittest.TestCase):
         result = filter_songplays(df)
         pd.testing.assert_frame_equal(expected_result, result)
 
-    def test_transform_time_data(df):
+    def test_transforms_time_data_into_datetime_elements(df):
         df = pd.DataFrame({
             'ts': [1591017855401, 1591279264136]
         })
