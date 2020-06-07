@@ -5,12 +5,15 @@ from etl import *
 
 
 class TestSongDataImport(unittest.TestCase):
-    sample_song_data = '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6C", "artist_latitude": null, ' \
-        '"artist_longitude": null, "artist_location": "London, England", "artist_name": "Adam Ant", ' \
-        '"song_id": "SONHOTT12A8C13493C", "title": "Something Girls", "duration": 233.40363, "year": 1982} \n' \
-        '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6D", "artist_latitude": null, "artist_longitude": null, ' \
-        '"artist_location": "London, England", "artist_name": "Betty Blue", "song_id": "SONHOTT12A8C13493D", ' \
-        '"title": "Something Else", "duration": 233.4012, "year": 2019} \n {}'
+    sample_song_data = (
+        '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6C", "artist_latitude": null, "artist_longitude": null, '
+        '"artist_location": "London, England", "artist_name": "Adam Ant", "song_id": "SONHOTT12A8C13493C", '
+        '"title": "Something Girls", "duration": 233.40363, "year": 1982} \n'
+        '{"num_songs": 1, "artist_id": "AR7G5I41187FB4CE6D", "artist_latitude": null, "artist_longitude": null, '
+        '"artist_location": "London, England", "artist_name": "Betty Blue", "song_id": "SONHOTT12A8C13493D", '
+        '"title": "Something Else", "duration": 233.4012, "year": 2019} \n'
+        '{}'
+    )
 
     song_table_data = ['SONHOTT12A8C13493C', 'Something Girls', 'AR7G5I41187FB4CE6C', 1982, 233.40363]
 

@@ -1,18 +1,10 @@
-# TABLE COLUMNS
-
-SONGPLAY_COLS = ('start_time', 'user_id', 'level', 'song_id', 'artist_id', 'session_id', 'location', 'user_agent')
-USER_COLS = ('user_id', 'first_name', 'last_name', 'gender', 'level')
-SONG_COLS = ('song_id', 'title', 'artist_id', 'year', 'duration')
-ARTIST_COLS = ('artist_id', 'name', 'location', 'latitude', 'longitude')
-TIME_COLS = ('start_time', 'hour', 'day', 'week', 'month', 'year', 'weekday')
-
 # DROP TABLES
 
 songplay_table_drop = "DROP TABLE IF EXISTS songplays;"
 user_table_drop = "DROP TABLE IF EXISTS users;"
 song_table_drop = "DROP TABLE IF EXISTS songs;"
 artist_table_drop = "DROP TABLE IF EXISTS artists;"
-time_table_drop = "DROP TABLE IF EXISTS times;"
+time_table_drop = "DROP TABLE IF EXISTS time;"
 
 # CREATE TABLES
 
@@ -61,7 +53,7 @@ CREATE TABLE artists(
 """)
 
 time_table_create = ("""
-CREATE TABLE times(
+CREATE TABLE time(
     start_time      bigint PRIMARY KEY,
     hour            integer NOT NULL,
     day             integer NOT NULL,
@@ -96,7 +88,7 @@ VALUES (%s, %s, %s, %s, %s)
 
 
 time_table_insert = ("""
-INSERT INTO times (start_time, hour, day, week, month, year, weekday)
+INSERT INTO time (start_time, hour, day, week, month, year, weekday)
 VALUES (%s, %s, %s, %s, %s, %s, %s)
 """)
 

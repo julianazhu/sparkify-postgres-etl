@@ -20,12 +20,18 @@ class DbConnection:
 
     def execute_insert_query(self, insert_query, df):
         """ Inserts the dataframe data into a table according to the insert query """
-        self.cur.execute(insert_query, df)
-        self.conn.commit()
+        try:
+            self.cur.execute(insert_query, df)
+            self.conn.commit()
+        except (psycopg2.errors.UniqueViolation, psycopg2.errors.InFailedSqlTransaction):
+            print(f'Duplicate key value already in dimension table, skipping row: \n {df.to_dict()}')
+            return False
 
     def execute_copy_from(self, file, table_name, cols):
-        """ Inserts the file's data into a specified table columns """
-        self.cur.copy_from(file, table_name, columns=cols, null='Unknown')
+        """
+        Inserts the file's data into a specified table columns
+        """
+        self.cur.copy_from(file, table_name, columns=cols)
         self.conn.commit()
 
     def execute_select_query(self, select_query, cols):

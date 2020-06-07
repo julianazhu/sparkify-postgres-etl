@@ -1,3 +1,19 @@
+"""
+This module defines and ETL pipeline that imports data song and log
+data from .json files under the /data/ directory into a star-schema Postgres database.
+
+The resulting database 'sparkifydb' has the following structure:
+
+#####################    FACT TABLE:     ####################
+songplays   - records in log data associated with song plays
+
+##################### DIMENSION TABLES: #####################
+users       - users in the app
+songs       - songs in music database
+artists     - artists in music database
+time        - timestamps of records in songplays broken down into specific units
+"""
+
 import os
 import glob
 import io
@@ -8,16 +24,19 @@ import pandas as pd
 from sql_queries import *
 from db_connection import *
 
-# JSON INPUT DIRECTORY PATHS
+# JSON INPUT DIRECTORIES
 SONG_DATA_PATH = "data/song_data"
 LOG_DATA_PATH = "data/log_data"
 
 # JSON INPUT FILE FIELDS
-SONG_FIELDS = ["song_id", "title", "artist_id", "year", "duration"]
-ARTIST_FIELDS = ["artist_id", "artist_name", "artist_location", "artist_latitude", "artist_longitude"]
-TIME_FIELDS = ["start_time", "hour", "day", "week", "month", "year", "weekday"]
-USER_FIELDS = ["userId", "firstName", "lastName", "gender", "level"]
-SONGPLAY_FIELDS = ["ts", "userId", "level", "song_id", "artist_id", "sessionId", "location", "userAgent"]
+SONG_FIELDS = ['song_id', 'title', 'artist_id', 'year', 'duration']
+ARTIST_FIELDS = ['artist_id', 'artist_name', 'artist_location', 'artist_latitude', 'artist_longitude']
+TIME_FIELDS = ['start_time', 'hour', 'day', 'week', 'month', 'year', 'weekday']
+USER_FIELDS = ['userId', 'firstName', 'lastName', 'gender', 'level']
+SONGPLAY_FIELDS = ['ts', 'userId', 'level', 'song_id', 'artist_id', 'sessionId', 'location', 'userAgent']
+
+# DB TABLE COLUMNS
+SONGPLAY_TABLE_COLS = ['start_time', 'user_id', 'level', 'song_id', 'artist_id', 'session_id', 'location', 'user_agent']
 
 
 def extract_song_and_log_data():
@@ -62,12 +81,15 @@ def validate_json(json_data):
     try:
         return json.loads(json_data)
     except json.decoder.JSONDecodeError:
-        f"Invalid JSON, ignoring: \"{json_data}\""
+        print(f"Invalid JSON, ignoring: \"{json_data}\"")
         return None
 
 
-def get_songplay_data(songplay_log_data, db_conn):
-    """ Returns the songplay data with artist_id and song_id from db """
+def get_songplay_db_data(songplay_log_data, db_conn):
+    """
+    Returns the songplay data with artist_id
+    and song_id from db
+    """
     dimensions_dict = retrieve_songplay_dimension_fields(songplay_log_data, db_conn)
     dimensions_df = pd.DataFrame(dimensions_dict)
     songplay_data = pd.concat([songplay_log_data, dimensions_df], axis=1)
@@ -75,38 +97,84 @@ def get_songplay_data(songplay_log_data, db_conn):
 
 
 def transform_log_data(log_data, db_conn):
-    """ Returns cleaned & transformed songplay & time data from log data """
+    """
+    Returns relevant songplay & time data from log data
+    """
     songplay_log_data = filter_songplays(log_data)
+
     time_data = transform_time_data(songplay_log_data)
-    time_data = deduplicate_on_primary_key(time_data, 'start_time')
-
-    songplay_data = get_songplay_data(songplay_log_data, db_conn)
-    songplay_data = clean_data(songplay_data)
+    songplay_data = get_songplay_db_data(songplay_log_data, db_conn)
     return time_data, songplay_data
-
-
-def deduplicate_on_primary_key(df, primary_key):
-    """ Removes duplicate artists from the song data """
-    return df.drop_duplicates(subset=primary_key, keep='first')
 
 
 def clean_data(df, primary_key=None):
     """ Drops null & duplicate rows """
     if primary_key:
-        df = df.dropna(subset=primary_key)
-        df = deduplicate_on_primary_key(df, primary_key)
+        df = df.dropna(subset=[primary_key])
+        df = df.drop_duplicates(subset=[primary_key], keep='first')
 
     df = df.dropna(how='all')
     return df
 
 
-def get_slice_as_file(df, cols, primary_key=None, float_format='%.2f'):
-    """ Insert specified columns into db """
-    relevant_data = df[cols]
-    cleaned_data = clean_data(relevant_data, primary_key)
+def filter_songplays(df):
+    """ Returns songplay rows """
+    return df.loc[df['page'] == "NextSong"]
 
+
+def transform_time_data(df):
+    """
+    Return a dataframe with each timestamp in
+    the input dataframe extrapolated into units:
+
+    timestamp, hour, day, week of year, month, year, day of week
+    """
+    timestamps = df.ts
+
+    time_data = []
+    for index, ts in timestamps.items():
+        dt = pd.to_datetime(ts, unit='ms')
+        time_data.append([ts, dt.hour, dt.day, dt.week, dt.month, dt.year, dt.dayofweek])
+
+    time_df = pd.DataFrame(time_data, columns=TIME_FIELDS, dtype='float64')
+    return time_df
+
+
+def retrieve_songplay_dimension_fields(df, db_conn):
+    """
+    Retrieves the song_id and artist_id fields
+    from the db for each songplay row in the input.
+    """
+    dimensions_dict = {'song_id': [], 'artist_id': []}
+
+    for index, row in df.iterrows():
+        results = db_conn.execute_select_query(song_select, (row.song, row.artist, row.length))
+
+        if results:
+            song_id, artist_id = results
+        else:
+            song_id, artist_id = None, None
+
+        dimensions_dict['song_id'].append(song_id)
+        dimensions_dict['artist_id'].append(song_id)
+
+    return dimensions_dict
+
+
+def get_cleaned_data_slice(df, cols, primary_key=None):
+    """
+    Returns selected columns from dataframe after
+    removing null and duplicate rows
+    """
+    df = df[cols]
+    df = clean_data(df, primary_key)
+    return df
+
+
+def get_df_as_file(df, float_format='%.f'):
+    """ Returns a string buffer of the dataframe """
     string_buffer = io.StringIO()
-    cleaned_data.to_csv(
+    df.to_csv(
         string_buffer,
         sep='\t',
         na_rep='Unknown',
@@ -119,47 +187,23 @@ def get_slice_as_file(df, cols, primary_key=None, float_format='%.2f'):
     return string_buffer
 
 
-def filter_songplays(df):
-    """ Returns songplay rows """
-    return df.loc[df['page'] == "NextSong"]
-
-
-def transform_time_data(df):
+def load_df_to_db(db_conn, insert_query, df):
     """
-    Extract timestamp column from a dataframe
-    Return a dataframe with each timestamp extrapolated into:
-    timestamp, hour, day, week of year, month, year, day of week
+    Iterates through each row of a dataframe
+    and inserts it into the DB
     """
-    timestamps = df.ts
-
-    time_data = []
-    for index, ts in timestamps.items():
-        dt = pd.to_datetime(ts, unit='ms')
-        time_data.append([ts, dt.hour, dt.day, dt.week, dt.month, dt.year, dt.dayofweek])
-
-    time_df = pd.DataFrame(time_data, columns=TIME_FIELDS)
-    return time_df
+    for _index, row in df.iterrows():
+        db_conn.execute_insert_query(insert_query, row)
 
 
-def retrieve_songplay_dimension_fields(df, db_conn):
+def bulk_copy_df_to_db(db_conn, df, cols, table, table_cols):
     """
-    Retrieves the song_id and artist_id fields
-    from the db for each songplay.
+    Transforms a dataframe into a cleaned file and
+    copies it as a bulk load into the DB
     """
-    dimensions_dict = {'song_id': [], 'artist_id': []}
-
-    for index, row in df.iterrows():
-        results = db_conn.execute_select_query(song_select, (row.song, row.artist, row.length))
-
-        if results:
-            song_id, artist_id = results
-        else:
-            song_id, artist_id = None, None
-
-        dimensions_dict["song_id"].append(song_id)
-        dimensions_dict["artist_id"].append(song_id)
-
-    return dimensions_dict
+    df = get_cleaned_data_slice(df, cols)
+    df_file = get_df_as_file(df)
+    db_conn.execute_copy_from(df_file, table, table_cols)
 
 
 def main():
@@ -167,20 +211,19 @@ def main():
         song_data, log_data = extract_song_and_log_data()
         time_data, songplay_data = transform_log_data(log_data, db_conn)
 
-        song_file = get_slice_as_file(song_data, SONG_FIELDS, ["song_id"])
-        db_conn.execute_copy_from(song_file, "songs", SONG_COLS)
+        song_table_data = get_cleaned_data_slice(song_data, SONG_FIELDS, 'song_id')
+        load_df_to_db(db_conn, song_table_insert, song_table_data)
 
-        artist_file = get_slice_as_file(song_data, ARTIST_FIELDS, ["artist_id"])
-        db_conn.execute_copy_from(artist_file, "artists", ARTIST_COLS)
+        artist_table_data = get_cleaned_data_slice(song_data, ARTIST_FIELDS, 'artist_id')
+        load_df_to_db(db_conn, artist_table_insert, artist_table_data)
 
-        time_file = get_slice_as_file(time_data, TIME_FIELDS, ["start_time"])
-        db_conn.execute_copy_from(time_file, "times", TIME_COLS)
+        time_table_data = get_cleaned_data_slice(time_data, TIME_FIELDS, 'start_time')
+        load_df_to_db(db_conn, time_table_insert, time_table_data)
 
-        user_file = get_slice_as_file(songplay_data, USER_FIELDS, ["userId"])
-        db_conn.execute_copy_from(user_file, "users", USER_COLS)
+        user_table_data = get_cleaned_data_slice(songplay_data, USER_FIELDS, 'userId')
+        load_df_to_db(db_conn, user_table_insert, user_table_data)
 
-        songplays_file = get_slice_as_file(songplay_data, SONGPLAY_FIELDS, float_format='%.f')
-        db_conn.execute_copy_from(songplays_file, "songplays", SONGPLAY_COLS)
+        bulk_copy_df_to_db(db_conn, songplay_data, SONGPLAY_FIELDS, 'songplays', SONGPLAY_TABLE_COLS)
 
 
 if __name__ == "__main__":
