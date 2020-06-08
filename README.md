@@ -18,18 +18,25 @@ python3 create_tables.py
 python3 etl.py
 ```
 
+**Note:** Expects to be able to connect to Postgres using the following credentials:
+```
+host=127.0.0.1 dbname=sparkifydb user=student password=student
+```
+
 #### Project Files
 * **etl.py** - The main script that runs the ETL Pipeline which processes the files in `data/` directory 
 * **create_tables.py** - Creates the `sparkifydb`, dropping the existing db & tables if they already exist
-* **db_connection.py** - defines the context manager class `DbConnection` which wraps the `psycopg2` connection & methods
+* **db_connection.py** - Defines a context manager class `DbConnection` which wraps the `psycopg2` connection & methods
 * **tests/test_etl.py** - Test for the ETL Pipeline
+* **tests/test.ipynb** - Ipython Notebook that connects to the DB 
+
 
 ## SparkifyDB (Star Schema)
-#### Fact Table
+###### Fact Table
 **songplays** - records in log data associated with song plays i.e. records with page `NextSong`
 - _songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent_
 
-#### Dimension Tables
+###### Dimension Tables
 **users** - users in the app
 - _user_id, first_name, last_name, gender, level_
 
