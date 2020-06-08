@@ -54,6 +54,9 @@ def get_files(filepath):
         for f in files:
             all_files.append(os.path.abspath(f))
 
+    num_files = len(all_files)
+    print(f'{num_files} files found in {filepath}')
+
     return all_files
 
 
@@ -62,10 +65,10 @@ def extract_json_data_from_dir(dir_path):
     Returns a dataframe containing data
     from all .json files in the directory.
     """
-    files = get_files(dir_path)
+    all_files = get_files(dir_path)
 
     json_data = []
-    for file in files:
+    for i, file in enumerate(all_files, 1):
         with open(file, "r") as f:
             lines = [line for line in f.readlines() if line.strip()]
             for line in lines:
@@ -223,6 +226,8 @@ def main():
         user_table_data = get_cleaned_data_slice(songplay_data, USER_FIELDS, 'userId')
         load_df_to_db(db_conn, user_table_insert, user_table_data)
 
+        # Need explicit column mapping or Postgres will interpret first dataframe column as
+        # the primary key instead of generating the primary key as a series
         bulk_copy_df_to_db(db_conn, songplay_data, SONGPLAY_FIELDS, 'songplays', SONGPLAY_TABLE_COLS)
 
 

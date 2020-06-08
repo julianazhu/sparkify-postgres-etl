@@ -5,8 +5,24 @@ This is the first project in the
 
 The virtual startup 'Sparkify' provides a music streaming service. 
 In this project we create an ETL pipeline using song and log datasets to a DB optimized for queries on 
-analysis of song plays, which could be used to support music recommendations, user behaviour preduction, or 
+analysis of song plays, which could be used to support music recommendations, user behaviour prediction, or 
 reporting for artist remuneration.
+
+## How to Run
+Clone this repository and (if you want to use your own data), replace the files in the `/data/song_data`
+and `data/log_data` directories with your own song and log data.
+
+```
+pip3 install -r requirements.txt
+python3 create_tables.py
+python3 etl.py
+```
+
+#### Project Files
+* **etl.py** - The main script that runs the ETL Pipeline which processes the files in `data/` directory 
+* **create_tables.py** - Creates the `sparkifydb`, dropping the existing db & tables if they already exist
+* **db_connection.py** - defines the context manager class `DbConnection` which wraps the `psycopg2` connection & methods
+* **tests/test_etl.py** - Test for the ETL Pipeline
 
 ## SparkifyDB (Star Schema)
 #### Fact Table
@@ -25,3 +41,8 @@ reporting for artist remuneration.
 
 **time** - timestamps of records in songplays broken down into specific units
 - _start_time, hour, day, week, month, year, weekday_
+
+## Data Source - The Million Song Dataset
+Thierry Bertin-Mahieux, Daniel P.W. Ellis, Brian Whitman, and Paul Lamere.
+[The Million Song Dataset](http://millionsongdataset.com/). In Proceedings of the 12th International Society
+for Music Information Retrieval Conference (ISMIR 2011), 2011.
