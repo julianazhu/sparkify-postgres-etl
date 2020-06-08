@@ -1,7 +1,6 @@
 import psycopg2
 
-# DB_CREDENTIALS = "host=127.0.0.1 dbname=sparkifydb user=student password=student"
-DB_CREDENTIALS = "host=127.0.0.1 dbname=sparkifydb user=postgres"
+DB_CREDENTIALS = "host=127.0.0.1 dbname=sparkifydb user=student password=student"
 
 
 class DbConnection:
