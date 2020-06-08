@@ -28,7 +28,7 @@ host=127.0.0.1 dbname=sparkifydb user=student password=student
 * **create_tables.py** - Creates the `sparkifydb`, dropping the existing db & tables if they already exist
 * **db_connection.py** - Defines a context manager class `DbConnection` which wraps the `psycopg2` connection & methods
 * **tests/test_etl.py** - Test for the ETL Pipeline
-* **tests/test.ipynb** - Ipython Notebook that connects to the DB 
+* **tests/test.ipynb** - Executes a select on each table to confirm that it is populated.
 
 
 ## SparkifyDB (Star Schema)
