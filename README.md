@@ -1,5 +1,5 @@
 # sparkify-etl-pipeline
-### Project Overview
+## Project Overview
 This is the first project in the 
 [Udacity Data Engineer Nanodegree](https://www.udacity.com/course/data-engineer-nanodegree--nd027).
 
